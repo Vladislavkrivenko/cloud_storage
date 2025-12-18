@@ -34,11 +34,11 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
-<!--         SECURITY -->
-                <dependency>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-starter-security</artifactId>
-                </dependency>
+        <!--         SECURITY -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
 
         <!-- JPA + Hibernate -->
         <dependency>
@@ -60,11 +60,11 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Redis + Spring Session -->
-        <!--        <dependency>-->
-        <!--            <groupId>org.springframework.boot</groupId>-->
-        <!--            <artifactId>spring-boot-starter-data-redis</artifactId>-->
-        <!--        </dependency>-->
+        <!--         Redis + Spring Session-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.session</groupId>

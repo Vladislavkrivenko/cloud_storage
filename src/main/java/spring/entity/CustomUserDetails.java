@@ -1,17 +1,19 @@
 package spring.entity;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.List;
 
-@Getter
-@RequiredArgsConstructor
 public class CustomUserDetails implements UserDetails {
-    private final UserEntity user;
+    private final String username;
+    private final String password;
+
+    public CustomUserDetails(UserEntity user) {
+        this.username = user.getLogin();
+        this.password = user.getPassword();
+    }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -20,12 +22,12 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public String getPassword() {
-        return user.getPassword();
+        return password;
     }
 
     @Override
     public String getUsername() {
-        return user.getLogin();
+        return username;
     }
 
     @Override
