@@ -20,6 +20,12 @@ data:
     store-type: redis
     timeout: 30m
 
+minio:
+  url: http://localhost:9000
+  access-key: admin
+  secret-key: admin
+  bucket: user-files
+
 logging:
   level:
     org.hibernate.SQL: DEBUG
