@@ -14,7 +14,7 @@ import spring.repository.UserRepository;
 
 @Slf4j
 @Service
-@Transactional
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class UserService implements UserDetailsService {
     private final UserRepository userRepository;
@@ -23,6 +23,10 @@ public class UserService implements UserDetailsService {
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         UserEntity user = userRepository.findByLogin(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
-        return new CustomUserDetails(user);
+        return new CustomUserDetails(
+                user.getId(),
+                user.getLogin(),
+                user.getPassword()
+        );
     }
 }

@@ -1,6 +1,6 @@
 package spring.dto;
 
-public record ResourcesDto(
+public record ResourceDto(
         String name,
         String path,
         ResourceType type,

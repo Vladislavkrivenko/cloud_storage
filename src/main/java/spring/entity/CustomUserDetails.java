@@ -1,5 +1,6 @@
 package spring.entity;
 
+import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -7,12 +8,16 @@ import java.util.Collection;
 import java.util.List;
 
 public class CustomUserDetails implements UserDetails {
+
+    @Getter
+    private final Integer userId;
     private final String username;
     private final String password;
 
-    public CustomUserDetails(UserEntity user) {
-        this.username = user.getLogin();
-        this.password = user.getPassword();
+    public CustomUserDetails(Integer userId, String username, String password) {
+        this.userId = userId;
+        this.username = username;
+        this.password = password;
     }
 
     @Override
@@ -49,5 +54,4 @@ public class CustomUserDetails implements UserDetails {
     public boolean isEnabled() {
         return true;
     }
-
 }

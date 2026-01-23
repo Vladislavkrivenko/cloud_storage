@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import spring.dto.RegisterRequestDto;
 import spring.entity.UserEntity;
 import spring.exeption.UsernameAlreadyExistsException;
+import spring.exeption.storageExeption.BadRequestException;
 import spring.mapper.UserMapper;
 import spring.repository.UserRegistrationDao;
 
@@ -23,7 +24,7 @@ public class RegistrationService {
         if (registerRequestDto == null
                 || registerRequestDto.username() == null || registerRequestDto.username().isBlank()
                 || registerRequestDto.password() == null || registerRequestDto.password().isBlank()) {
-            throw new IllegalArgumentException("Username and password must not be null or blank");
+            throw new BadRequestException("Username and password must not be null or blank");
         }
         if (userRegistrationDao.existsByLogin(registerRequestDto.username())) {
             throw new UsernameAlreadyExistsException("Username is already taken");

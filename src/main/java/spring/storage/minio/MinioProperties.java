@@ -1,4 +1,4 @@
-package spring.conf;
+package spring.storage.minio;
 
 import lombok.Getter;
 import lombok.Setter;

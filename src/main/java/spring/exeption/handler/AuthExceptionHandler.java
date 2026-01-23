@@ -31,10 +31,4 @@ public class AuthExceptionHandler {
     public ResponseEntity<Map<String, String>> handleConflict(UsernameAlreadyExistsException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", ex.getMessage()));
     }
-
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, String>> handleOther(Exception ex) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("message", "Internal error"));
-    }
 }

@@ -1,4 +1,4 @@
-package spring.conf;
+package spring.storage.minio;
 
 import io.minio.MinioClient;
 import lombok.RequiredArgsConstructor;
