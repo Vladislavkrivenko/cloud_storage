@@ -42,10 +42,30 @@ public class SecurityConfiguration {
                         .securityContextRepository(securityContextRepository())
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**", "/logout", "/v3/api-docs/**", "/swagger-ui/**")
-                        .permitAll()
+                        .requestMatchers(
+                                "/",
+                                "/config.js",
+                                "/index.html",
+                                "/favicon.ico",
+                                "/assets/**"
+                        ).permitAll()
+
+                        .requestMatchers(
+                                "/api/auth/**",
+                                "/files/**",
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**"
+                        ).permitAll()
+
                         .anyRequest().authenticated()
                 )
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(
+                                (request, response, authException) ->
+                                        response.sendError(HttpServletResponse.SC_UNAUTHORIZED)
+                        )
+                )
+
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                         .maximumSessions(1)
@@ -53,7 +73,7 @@ public class SecurityConfiguration {
                         .sessionRegistry(sessionRegistry())
                 )
                 .logout(logout -> logout
-                        .logoutUrl("/logout")
+                        .logoutUrl("/api/auth/sign-out")
                         .logoutSuccessHandler((request, response, authentication) -> {
                             response.setStatus(HttpServletResponse.SC_NO_CONTENT);
                         })

@@ -3,15 +3,9 @@ package spring;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-
-/**
- * Hello world!
- *
- */
 @SpringBootApplication
 @RequiredArgsConstructor
 public class App {
-
     public static void main(String[] args) {
         SpringApplication.run(App.class, args);
     }

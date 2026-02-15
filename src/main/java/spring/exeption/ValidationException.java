@@ -1,6 +1,8 @@
 package spring.exeption;
 
-public class ValidationException extends RuntimeException {
+import spring.exeption.storageExeption.BadRequestException;
+
+public class ValidationException extends BadRequestException {
 
     public ValidationException(String message) {
         super(message);

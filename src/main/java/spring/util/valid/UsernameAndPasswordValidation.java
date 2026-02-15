@@ -7,12 +7,12 @@ import spring.exeption.ValidationException;
 @Slf4j
 @UtilityClass
 public class UsernameAndPasswordValidation {
-    public static final int MIN_PASSWORD_LENGTH = 8;
+    public static final int MIN_PASSWORD_LENGTH = 5;
     public static final String AT_LEAST_ONE_DIGIT = ".*\\d.*";
     public static final String PASSWORD_MUST_CONTAIN_UPPERCASE_REGEX = ".*[A-Z].*";
     public static final String REGEX_LOWERCASE_LETTER = ".*[a-z].*";
     public static final String REGEX_SPECIAL_CHARACTER = ".*[!@#$%^&*()_+\\-{};':\"|,.<>/?].*";
-    public static final int MIN_USERNAME_LENGTH = 3;
+    public static final int MIN_USERNAME_LENGTH = 5;
 
 
     public void validatePassword(String password) {
@@ -21,8 +21,8 @@ public class UsernameAndPasswordValidation {
             throw new ValidationException("Password is empty");
         }
         if (password.length() < MIN_PASSWORD_LENGTH) {
-            log.warn("Password length less than 8");
-            throw new ValidationException("Password length less than 8");
+            log.warn("Password length less than 5");
+            throw new ValidationException("Password length less than 5");
         }
         if (!password.matches(AT_LEAST_ONE_DIGIT)) {
             log.warn("Password must contain at least one digit");
@@ -47,8 +47,8 @@ public class UsernameAndPasswordValidation {
             throw new ValidationException("Login is empty");
         }
         if (username.length() < MIN_USERNAME_LENGTH) {
-            log.error("Username length less than 3");
-            throw new ValidationException("Username length less than 3");
+            log.error("Username length less than 5");
+            throw new ValidationException("Username length less than 5");
         }
     }
 }

@@ -9,7 +9,6 @@ import spring.dto.ResourceType;
 public class RemoveContext {
     private final Integer userId;
     private final String bucket;
-
     private final ResourceType resourceType;
 
     private final String object;

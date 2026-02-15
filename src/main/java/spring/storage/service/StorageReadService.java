@@ -1,7 +1,6 @@
 package spring.storage.service;
 
 import io.minio.*;
-import io.minio.errors.ErrorResponseException;
 import io.minio.messages.Item;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -10,7 +9,6 @@ import spring.dto.ResourceDto;
 import spring.dto.ResourceType;
 import spring.exeption.storageExeption.ApiException;
 import spring.exeption.storageExeption.BadRequestException;
-import spring.exeption.storageExeption.NotFoundException;
 import spring.storage.contex.DownloadContext;
 import spring.storage.contex.ListContext;
 import spring.storage.contex.SearchContext;
@@ -18,14 +16,16 @@ import spring.storage.interf.DownloadValidator;
 import spring.storage.interf.ListValidator;
 import spring.storage.interf.SearchValidator;
 import spring.storage.minio.MinioProperties;
+import spring.storage.resolver.ResolvedPath;
+import spring.storage.resolver.ResolvedType;
+import spring.storage.resolver.StoragePathResolver;
 import spring.util.StoragePathUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -40,68 +40,53 @@ public class StorageReadService {
     private final ListValidator listValidator;
     private final SearchValidator searchValidator;
     private final Executor zipExecutor;
+    private final StoragePathResolver storagePathResolver;
 
     public ResourceDto getResource(Integer userId, String path) {
-
-        if (path == null || path.isBlank()) {
-            throw new BadRequestException("Path must not be empty");
-        }
-
-        String bucket = minioProperties.getBucket();
+        ResolvedPath resolved = storagePathResolver.resolve(userId, path);
         String basePrefix = StoragePathUtils.basePrefix(userId);
 
-        try {
-            String fileObjectName = basePrefix + StoragePathUtils.normalizeFile(path);
+        if (resolved.getType() == ResolvedType.FILE) {
+            try {
+                StatObjectResponse stat = minioClient.statObject(
+                        StatObjectArgs.builder()
+                                .bucket(minioProperties.getBucket())
+                                .object(resolved.getObject())
+                                .build()
+                );
 
-            StatObjectResponse stat = minioClient.statObject(
-                    StatObjectArgs.builder()
-                            .bucket(bucket)
-                            .object(fileObjectName)
-                            .build()
-            );
+                return new ResourceDto(
+                        StoragePathUtils.extractName(resolved.getObject()),
+                        StoragePathUtils.extractParentPath(
+                                resolved.getObject(),
+                                basePrefix
+                        ),
+                        ResourceType.FILE,
+                        stat.size()
+                );
 
-            return new ResourceDto(
-                    StoragePathUtils.extractName(fileObjectName),
-                    path,
-                    ResourceType.FILE,
-                    stat.size()
-
-            );
-
-        } catch (ErrorResponseException e) {
-            if (e.errorResponse().code().equals("NoSuchKey")) {
-            } else {
+            } catch (Exception e) {
                 throw new IllegalStateException("Failed to stat file: " + path, e);
             }
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to stat file: " + path, e);
         }
+        String dirPrefix = resolved.getPrefix();
 
-        try {
-            String dirPrefix = basePrefix + StoragePathUtils.normalizeDirectory(path);
-
-            Iterable<Result<Item>> iterable = minioClient.listObjects(
-                    ListObjectsArgs.builder()
-                            .bucket(bucket)
-                            .prefix(dirPrefix)
-                            .recursive(false)
-                            .maxKeys(1)
-                            .build()
-            );
-
-            if (iterable.iterator().hasNext()) {
-                return new ResourceDto(
-                        StoragePathUtils.extractName(dirPrefix),
-                        path,
-                        ResourceType.DIRECTORY,
-                        null
-                );
-            }
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to check directory: " + path, e);
+        if (dirPrefix.equals(basePrefix)) {
+            throw new BadRequestException("Root directory has no resource representation");
         }
+        String parentPath = StoragePathUtils.extractParentPath(
+                dirPrefix,
+                basePrefix
+        );
 
-        throw new NotFoundException("Resource not found: " + path);
+        String name = StoragePathUtils.extractName(dirPrefix);
+
+        return new ResourceDto(
+                name.endsWith("/") ? name : name + "/",
+                parentPath,
+                ResourceType.DIRECTORY,
+                null
+        );
     }
 
     public InputStream download(Integer userId, String path) {
@@ -132,13 +117,15 @@ public class StorageReadService {
             PipedOutputStream pos = new PipedOutputStream();
             PipedInputStream pis = new PipedInputStream(pos);
 
+            String dirPrefix = ctx.getPrefix();
+
             zipExecutor.execute(() -> {
                 try (ZipOutputStream zos = new ZipOutputStream(pos)) {
 
                     Iterable<Result<Item>> items = minioClient.listObjects(
                             ListObjectsArgs.builder()
                                     .bucket(ctx.getBucket())
-                                    .prefix(ctx.getObject() + "/")
+                                    .prefix(dirPrefix)
                                     .recursive(true)
                                     .build()
                     );
@@ -151,8 +138,7 @@ public class StorageReadService {
                         }
 
                         String relativePath =
-                                item.objectName()
-                                        .substring(ctx.getObject().length() + 1);
+                                item.objectName().substring(dirPrefix.length());
 
                         zos.putNextEntry(new ZipEntry(relativePath));
 
@@ -185,6 +171,8 @@ public class StorageReadService {
     public List<ResourceDto> search(Integer userId, String query) {
         SearchContext ctx = searchValidator.validate(userId, query);
         List<ResourceDto> result = new ArrayList<>();
+        Set<String> seenDirectories = new HashSet<>();
+
         try {
             Iterable<Result<Item>> iterable = minioClient.listObjects(
                     ListObjectsArgs.builder()
@@ -196,22 +184,38 @@ public class StorageReadService {
 
             for (Result<Item> r : iterable) {
                 Item item = r.get();
-
                 String objectName = item.objectName();
-                if (!objectName.contains(ctx.getQuery())) {
+
+                if (objectName.equals(ctx.getBasePrefix())) {
+                    continue;
+                }
+
+                String name = StoragePathUtils.extractName(objectName);
+                if (!name.contains(ctx.getQuery())) {
                     continue;
                 }
 
                 boolean isDirectory = objectName.endsWith("/");
 
+                if (isDirectory && !seenDirectories.add(objectName)) {
+                    continue;
+                }
+
+                String fullPath = objectName.replace(ctx.getBasePrefix(), "");
                 result.add(new ResourceDto(
-                        StoragePathUtils.extractName(objectName),
-                        objectName.replace(ctx.getBasePrefix(), ""),
+                        name,
+                        fullPath,
                         isDirectory ? ResourceType.DIRECTORY : ResourceType.FILE,
                         isDirectory ? null : item.size()
                 ));
 
             }
+            result.sort(
+                    Comparator
+                            .comparing((ResourceDto r) -> r.type() != ResourceType.DIRECTORY)
+                            .thenComparing(ResourceDto::name)
+            );
+
             return result;
         } catch (ApiException e) {
             throw e;
@@ -233,20 +237,46 @@ public class StorageReadService {
                             .recursive(false)
                             .build()
             );
+
             for (Result<Item> r : objects) {
                 Item item = r.get();
+                String objectName = item.objectName();
 
-                if (item.objectName().equals(ctx.getPrefix())) {
+                if (objectName.equals(ctx.getPrefix())) {
                     continue;
                 }
-                boolean isDirectory = item.objectName().endsWith("/");
+
+                boolean isDirectory = objectName.endsWith("/");
+
+                String name = StoragePathUtils.extractName(objectName);
+
+                if (isDirectory && !name.endsWith("/")) {
+                    name = name + "/";
+                }
+
+                String parentPath = StoragePathUtils.extractParentPath(
+                        objectName,
+                        ctx.getBasePrefix()
+                );
+                log.debug(
+                        "LIST DTO -> name='{}', fullPath='{}', isDirectory={}",
+                        name,
+                        parentPath,
+                        isDirectory
+                );
                 result.add(new ResourceDto(
-                        StoragePathUtils.extractName(item.objectName()),
-                        item.objectName().replace(ctx.getBasePrefix(), ""),
+                        name,
+                        parentPath,
                         isDirectory ? ResourceType.DIRECTORY : ResourceType.FILE,
                         isDirectory ? null : item.size()
                 ));
             }
+
+            result.sort(
+                    Comparator
+                            .comparing((ResourceDto r) -> r.type() != ResourceType.DIRECTORY)
+                            .thenComparing(ResourceDto::name)
+            );
             return result;
         } catch (Exception e) {
             throw new IllegalStateException("Failed to list directory: " + path, e);

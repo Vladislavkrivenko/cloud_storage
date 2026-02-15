@@ -11,6 +11,12 @@ spring:
       hibernate:
         format_sql: true
 
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 50MB
+      max-request-size: 50MB
+
 data:
   redis:
     host: localhost
@@ -23,10 +29,14 @@ data:
 minio:
   url: http://localhost:9000
   access-key: admin
-  secret-key: admin
+  secret-key: adminadmin
   bucket: user-files
 
 logging:
+  file:
+    name: log/app.log
   level:
+    root: INFO
+    spring.storage: DEBUG
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE

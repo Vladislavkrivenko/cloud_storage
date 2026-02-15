@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import spring.dto.ResourceDto;
-import spring.storage.validate.CreateDirectoryValidator;
 
 import java.io.InputStream;
 import java.util.List;
@@ -15,7 +14,6 @@ public class FileStorageFacade {
 
     private final StorageReadService readService;
     private final StorageWriteService writeService;
-    private final CreateDirectoryValidator createDirectoryValidator;
 
     public ResourceDto getResource(Integer userId, String path) {
         return readService.getResource(userId, path);
@@ -38,7 +36,7 @@ public class FileStorageFacade {
         return writeService.upload(userId, targetPath, file);
     }
 
-    public ResourceDto move(Integer userId, String from, String to) throws Exception {
+    public ResourceDto move(Integer userId, String from, String to) {
         return writeService.move(userId, from, to);
     }
 

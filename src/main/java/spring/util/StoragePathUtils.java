@@ -44,20 +44,42 @@ public class StoragePathUtils {
         return path;
     }
 
-    public String extractName(String objectName) {
+    public static String extractName(String objectName) {
+
+        log.debug("extractName INPUT: '{}'", objectName);
+
         if (objectName == null || objectName.isBlank()) {
+            log.debug("extractName EMPTY");
             return "";
         }
 
         if (objectName.endsWith("/")) {
             objectName = objectName.substring(0, objectName.length() - 1);
+            log.debug("extractName AFTER trim '/': '{}'", objectName);
         }
 
         int idx = objectName.lastIndexOf('/');
 
-        return idx >= 0
+        String result = idx >= 0
                 ? objectName.substring(idx + 1)
                 : objectName;
+
+        log.debug("extractName RESULT: '{}'", result);
+        return result;
+    }
+
+    public String extractParentPath(String objectName, String basePrefix) {
+        String relative = objectName.replace(basePrefix, "");
+        if (relative.endsWith("/")) {
+            relative = relative.substring(0, relative.length() - 1);
+        }
+
+        int idx = relative.lastIndexOf('/');
+        if (idx < 0) {
+            return "";
+        }
+
+        return relative.substring(0, idx + 1);
     }
 
 }

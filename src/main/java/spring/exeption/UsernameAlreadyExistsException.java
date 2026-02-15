@@ -1,6 +1,8 @@
 package spring.exeption;
 
-public class UsernameAlreadyExistsException extends RuntimeException {
+import spring.exeption.storageExeption.ConflictException;
+
+public class UsernameAlreadyExistsException extends ConflictException {
     public UsernameAlreadyExistsException(String message) {
         super(message);
     }

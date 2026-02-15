@@ -11,13 +11,14 @@ public class UploadContext {
     private final Integer userId;
     private final String bucket;
 
+    private final String targetPrefix;
+
     private final String objectName;
 
-    private final String relativePath;
+    private final String name;
+    private final String path;
 
-    private final String originalFileName;
     private final Long fileSize;
     private final String contentType;
-
     private final InputStream inputStream;
 }

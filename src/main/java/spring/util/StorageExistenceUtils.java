@@ -26,12 +26,12 @@ public class StorageExistenceUtils {
             );
             return true;
         } catch (Exception e) {
-            log.warn("Failed to check existence for {}/{}: {}", bucket, object, e.toString());
+            log.debug("Failed to check existence for {}/{}: {}", bucket, object, e.toString());
             return false;
         }
     }
 
-    public boolean directoryExists(
+    public boolean hasAnyObjectWithPrefix(
             MinioClient minioClient,
             String bucket,
             String prefix
@@ -47,7 +47,8 @@ public class StorageExistenceUtils {
             );
             return items.iterator().hasNext();
         } catch (Exception e) {
-            return false;
+            log.error("Failed to list objects for prefix {}/{}", bucket, prefix, e);
+            throw new IllegalStateException("Failed to access storage", e);
         }
     }
 }

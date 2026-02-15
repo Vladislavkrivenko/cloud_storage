@@ -1,54 +1,53 @@
 package spring.storage.validate;
 
-import io.minio.MinioClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import spring.dto.ResourceType;
 import spring.exeption.storageExeption.BadRequestException;
-import spring.exeption.storageExeption.NotFoundException;
 import spring.storage.contex.RemoveContext;
 import spring.storage.interf.RemoveValidator;
 import spring.storage.minio.MinioProperties;
-import spring.util.StorageExistenceUtils;
+import spring.storage.resolver.ResolvedPath;
+import spring.storage.resolver.ResolvedType;
+import spring.storage.resolver.StoragePathResolver;
 import spring.util.StoragePathUtils;
 
 @Component
 @RequiredArgsConstructor
 public class RemoveValidatorImpl implements RemoveValidator {
+
     private final MinioProperties minioProperties;
-    private final MinioClient minioClient;
+    private final StoragePathResolver storagePathResolver;
 
     @Override
     public RemoveContext validate(Integer userId, String path) {
 
-        if (path == null || path.isBlank()) {
-            throw new BadRequestException("Path must not be empty");
-        }
-        String bucket = minioProperties.getBucket();
+        ResolvedPath resolved = storagePathResolver.resolve(userId, path);
         String base = StoragePathUtils.basePrefix(userId);
 
-        String file = base + StoragePathUtils.normalizeFile(path);
-        String dir = base + StoragePathUtils.normalizeDirectory(path);
+        if (resolved.getType() == ResolvedType.DIRECTORY
+                && base.equals(resolved.getPrefix())) {
+            throw new BadRequestException("Root directory cannot be removed");
+        }
 
-        if (StorageExistenceUtils.fileExists(minioClient, bucket, file)) {
+        if (resolved.getType() == ResolvedType.FILE) {
             return RemoveContext.builder()
                     .userId(userId)
-                    .bucket(bucket)
+                    .bucket(minioProperties.getBucket())
                     .resourceType(ResourceType.FILE)
-                    .object(file)
-                    .path(path)
-                    .build();
-        }
-        if (StorageExistenceUtils.directoryExists(minioClient, bucket, dir)) {
-            return RemoveContext.builder()
-                    .userId(userId)
-                    .bucket(bucket)
-                    .resourceType(ResourceType.DIRECTORY)
-                    .object(dir)
+                    .object(resolved.getObject())
+                    .prefix(null)
                     .path(path)
                     .build();
         }
 
-        throw new NotFoundException("Resource not found: " + path);
+        return RemoveContext.builder()
+                .userId(userId)
+                .bucket(minioProperties.getBucket())
+                .resourceType(ResourceType.DIRECTORY)
+                .object(null)
+                .prefix(resolved.getPrefix())
+                .path(path)
+                .build();
     }
 }

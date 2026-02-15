@@ -7,9 +7,9 @@ import org.springframework.transaction.annotation.Transactional;
 import spring.dto.RegisterRequestDto;
 import spring.entity.UserEntity;
 import spring.exeption.UsernameAlreadyExistsException;
-import spring.exeption.storageExeption.BadRequestException;
 import spring.mapper.UserMapper;
 import spring.repository.UserRegistrationDao;
+import spring.util.valid.UsernameAndPasswordValidation;
 
 @Service
 @Transactional
@@ -21,15 +21,14 @@ public class RegistrationService {
 
 
     public UserEntity saveUsers(RegisterRequestDto registerRequestDto) {
-        if (registerRequestDto == null
-                || registerRequestDto.username() == null || registerRequestDto.username().isBlank()
-                || registerRequestDto.password() == null || registerRequestDto.password().isBlank()) {
-            throw new BadRequestException("Username and password must not be null or blank");
-        }
+
+        UsernameAndPasswordValidation.validatePassword(registerRequestDto.password());
+        UsernameAndPasswordValidation.validateUsername(registerRequestDto.username());
+
         if (userRegistrationDao.existsByLogin(registerRequestDto.username())) {
             throw new UsernameAlreadyExistsException("Username is already taken");
         }
-        UserEntity user = userMapper.entity(registerRequestDto);
+        UserEntity user = userMapper.toEntity(registerRequestDto);
         user.setPassword(passwordEncoder.encode(registerRequestDto.password()));
         return userRegistrationDao.save(user);
     }

@@ -8,6 +8,9 @@ import spring.exeption.storageExeption.ConflictException;
 import spring.exeption.storageExeption.ForbiddenException;
 import spring.storage.contex.CreateDirectoryContext;
 import spring.storage.minio.MinioProperties;
+import spring.storage.resolver.ResolvedPath;
+import spring.storage.resolver.ResolvedType;
+import spring.storage.resolver.StoragePathResolver;
 import spring.util.StorageExistenceUtils;
 import spring.util.StoragePathUtils;
 
@@ -16,28 +19,44 @@ import spring.util.StoragePathUtils;
 public class CreateDirectoryValidator {
     private final MinioProperties minioProperties;
     private final MinioClient minioClient;
+    private final StoragePathResolver storagePathResolver;
 
     public CreateDirectoryContext validate(Integer userId, String path) {
 
-        if (path == null || path.isBlank()) {
+        if (path == null) {
             throw new BadRequestException("Directory path must not be empty");
         }
-        String bucket = minioProperties.getBucket();
-        String basePrefix = StoragePathUtils.basePrefix(userId);
-        String dirPrefix = basePrefix + StoragePathUtils.normalizeDirectory(path);
 
-        if (dirPrefix.equals(basePrefix)) {
+        String bucket = minioProperties.getBucket();
+        String base = StoragePathUtils.basePrefix(userId);
+
+        String dirPrefix = base + StoragePathUtils.normalizeDirectory(path);
+
+        if (dirPrefix.equals(base)) {
             throw new ForbiddenException("Root directory already exists");
         }
-        String fileObject = dirPrefix.substring(0, dirPrefix.length() - 1);
-        if (StorageExistenceUtils.fileExists(minioClient, bucket, fileObject)) {
-            throw new ConflictException("File with same name already exists");
-        }
 
-        if (StorageExistenceUtils.directoryExists(minioClient, bucket, dirPrefix)) {
+        if (StorageExistenceUtils.hasAnyObjectWithPrefix(
+                minioClient,
+                bucket,
+                dirPrefix
+        )) {
             throw new ConflictException("Directory already exists");
         }
 
+        String parentPath = StoragePathUtils.extractParentPath(dirPrefix, base);
+
+        if (parentPath != null && !parentPath.isBlank()) {
+
+            if (!parentPath.equals(base)) {
+
+                ResolvedPath parent = storagePathResolver.resolve(userId, parentPath);
+
+                if (parent.getType() != ResolvedType.DIRECTORY) {
+                    throw new BadRequestException("Parent is not a directory");
+                }
+            }
+        }
         return CreateDirectoryContext.builder()
                 .userId(userId)
                 .bucket(bucket)
