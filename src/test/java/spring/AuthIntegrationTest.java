@@ -1,21 +1,15 @@
 package spring;
 
-import com.fasterxml.jackson.databind.ObjectMapper; // ✅ правильний Jackson
-
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-
-import org.testcontainers.junit.jupiter.Testcontainers;
-
 import spring.dto.LoginRequestDto;
 import spring.dto.RegisterRequestDto;
 import spring.entity.UserEntity;
@@ -24,12 +18,11 @@ import spring.repository.UserRepository;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*; // ✅ post(), get()
 
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*; // ✅ status(), jsonPath(), cookie()
-
-@Testcontainers
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")

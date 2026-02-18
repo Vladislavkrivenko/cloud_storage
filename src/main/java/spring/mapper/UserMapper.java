@@ -5,9 +5,10 @@ import org.mapstruct.Mapping;
 import spring.dto.RegisterRequestDto;
 import spring.dto.UserResponseDto;
 import spring.entity.UserEntity;
+
 @Mapper(componentModel = "spring")
 public interface UserMapper {
-
+    @Mapping(target = "id", ignore = true)
     @Mapping(source = "username", target = "login")
     UserEntity toEntity(RegisterRequestDto dto);
 
